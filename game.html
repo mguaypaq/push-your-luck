@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset=utf-8>
+<title>Push your luck</title>
+<style>
+body {
+  background: #ef8;
+  font: small-caps 100% sans-serif;
+}
+
+main {
+  background: #bf8;
+  bottom: 0;
+  display: flex;
+  flex-flow: column;
+  left: 0;
+  margin: 4em;
+  overflow: auto;
+  position: fixed;
+  right: 0;
+  top: 0;
+}
+
+main > form,
+main > div {
+  background: #add;
+  margin: auto;
+}
+
+main,
+main > form,
+main > div,
+input[type=button],
+#dice-pool,
+#move-pool {
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: .4em;
+  padding: .4em;
+  text-align: center;
+}
+
+#input-players,
+#input-dice {
+  border: none;
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+#dice-pool,
+#move-pool {
+  display: block;
+  margin: .4em 0;
+  min-height: 2em;
+}
+
+#scoreboard {
+  display: flex;
+  flex: none;
+  flex-flow: row;
+}
+
+#scoreboard > div {
+  display: flex;
+  flex-flow: column-reverse;
+}
+
+.bars {
+  align-items: flex-end;
+  border: 1px solid rgba(0, 0, 0, .2);
+  border-radius: .5em;
+  display: flex;
+  flex: none;
+  flex-flow: row;
+  height: 14em;
+  margin: .1em;
+  padding: 0 .25em;
+  position: relative;
+}
+
+.bar {
+  border: 1px solid rgba(0, 0, 0, .4);
+  border-radius: .25em;
+  box-sizing: border-box;
+  height: 10%;
+  width: .5em;
+  z-index: 1;
+}
+
+.bar.progress {
+  background: white;
+  bottom: 0;
+  box-shadow: 0 0 .3em .3em rgba(255, 255, 255, .7);
+  position: absolute;
+  z-index: 0;
+}
+
+.bars.scored > .bar {
+  z-index: -1;
+}
+
+.bars.scored > .bar.progress {
+  display: none;
+}
+
+/* Here, 'box-shadow' is used instead of 'border'
+   to avoid a weird interaction with a linear-gradient
+   used in the 'background' */
+#survival {
+  border-radius: .5em;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15);
+  line-height: 1em;
+  margin: auto;
+  text-align: center;
+  width: 80%;
+}
+
+#token-pool {
+  align-items: center;
+  bottom: 0;
+  display: flex;
+  flex-flow: row;
+  height: 4em;
+  left: 0;
+  right: 0;
+  overflow: auto;
+  position: fixed;
+}
+
+.token {
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: 50%;
+  flex: none;
+  height: 2em;
+  margin: 0 2em;
+  width: 2em;
+}
+
+.token.first {
+  margin-left: auto;
+}
+
+.token.last {
+  margin-right: auto;
+}
+
+.token.lit {
+  box-shadow: 0 0 .5em .5em white;
+}
+
+form[name="reset"] {
+  display: flex;
+  height: 4em;
+  padding: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 4em;
+}
+
+#reset {
+  margin: auto;
+}
+
+input[type=button] {
+  font: inherit;
+  box-sizing: content-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.player1 { background: #ebb !important; }
+.player2 { background: #beb !important; }
+.player3 { background: #bbe !important; }
+.player4 { background: #eeb !important; }
+.player5 { background: #ebe !important; }
+
+input:active,
+.lit {
+  box-shadow: 0 0 .5em .5em rgba(255, 255, 255, .5);
+}
+
+.die {
+  background: white;
+  color: transparent;
+  height: 1em;
+  width: 1em;
+}
+
+.die[value="1"] {
+  background-image:
+    radial-gradient(circle .25em at 50% 50%, black, black, transparent);
+}
+
+.die[value="2"] {
+  background-image:
+    radial-gradient(circle .25em at 30% 70%, black, black, transparent),
+    radial-gradient(circle .25em at 70% 30%, black, black, transparent);
+}
+
+.die[value="3"] {
+  background-image:
+    radial-gradient(circle .25em at 25% 25%, black, black, transparent),
+    radial-gradient(circle .25em at 50% 50%, black, black, transparent),
+    radial-gradient(circle .25em at 75% 75%, black, black, transparent);
+}
+
+.die[value="4"] {
+  background-image:
+    radial-gradient(circle .25em at 27% 27%, black, black, transparent),
+    radial-gradient(circle .25em at 27% 73%, black, black, transparent),
+    radial-gradient(circle .25em at 73% 27%, black, black, transparent),
+    radial-gradient(circle .25em at 73% 73%, black, black, transparent);
+}
+
+.die[value="5"] {
+  background-image:
+    radial-gradient(circle .25em at 25% 25%, black, black, transparent),
+    radial-gradient(circle .25em at 25% 75%, black, black, transparent),
+    radial-gradient(circle .25em at 50% 50%, black, black, transparent),
+    radial-gradient(circle .25em at 75% 25%, black, black, transparent),
+    radial-gradient(circle .25em at 75% 75%, black, black, transparent);
+}
+
+.die[value="6"] {
+  background-image:
+    radial-gradient(circle .22em at 25% 25%, black, black, transparent),
+    radial-gradient(circle .22em at 25% 50%, black, black, transparent),
+    radial-gradient(circle .22em at 25% 75%, black, black, transparent),
+    radial-gradient(circle .22em at 75% 25%, black, black, transparent),
+    radial-gradient(circle .22em at 75% 50%, black, black, transparent),
+    radial-gradient(circle .22em at 75% 75%, black, black, transparent);
+}
+</style>
+<!-- a javascript-generated css stylesheet gets inserted here -->
+<main>
+  <form name=players>
+    how many players are there?
+    <fieldset id=input-players>
+      <input type=button value=2>
+      <input type=button value=3>
+      <input type=button value=4>
+      <input type=button value=5>
+    </fieldset>
+  </form>
+  <form name=roll class=hidden>
+    <input type=button value=roll id=roll-dice accesskey=r>
+    or
+    <fieldset id=input-dice>
+      <label>record dice</label>
+      <input type=button class=die value=1 accesskey=1>
+      <input type=button class=die value=2 accesskey=2>
+      <input type=button class=die value=3 accesskey=3>
+      <input type=button class=die value=4 accesskey=4>
+      <input type=button class=die value=5 accesskey=5>
+      <input type=button class=die value=6 accesskey=6>
+    </fieldset>
+    or
+    <input type=button value=clear id=clear-dice disabled accesskey=c>
+    <fieldset id=dice-pool>
+      <!-- some javascript-generated buttons get inserted here -->
+    </fieldset>
+    then choose your move
+    <fieldset id=move-pool>
+      <!-- some javascript-generated buttons get inserted here -->
+    </fieldset>
+  </form>
+  <div id=scoreboard class=hidden>
+    <!-- some javascript-generated elements get inserted here -->
+  </div>
+  <form name=turn class=hidden>
+    with a probability of
+    <div id=survival>
+      <!-- this div is used as a progress bar -->
+    </div>
+    of keeping your progress this turn, do you want to
+    <br>
+    <input type=button value="roll again" id=roll-again disabled accesskey=a>?
+    otherwise
+    <input type=button value="end your turn" id=end-turn disabled accesskey=e>
+  </form>
+</main>
+<div id=token-pool class=hidden>
+  <div class="token player1 first"></div>
+  <div class="token player2"></div>
+  <div class="token player3"></div>
+  <div class="token player4"></div>
+  <div class="token player5"></div>
+</div>
+<form name=reset class=hidden>
+  <input type=button value=reset id=reset>
+</form>
+<script>
+/* ---------------------------------------------------------------- */
+/* global variable declarations */
+
+var gameState = {
+  currentPlayer: 0,
+  moveStack: [],
+  players: [
+    /* [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for each player */
+  ],
+};
+
+var ui = {
+  currentMove: null, /* set to 'null' or to an HTMLInputElement */
+  currentProgressBarStyle: null, /* set to a CSSStyleDeclaration */
+  currentProgressBars: [], /* array of 11 HTMLDivElement */
+  playerProgressBars: [
+    [], /* array of 11 HTMLDivElement */
+    [], /* array of 11 HTMLDivElement */
+    [], /* array of 11 HTMLDivElement */
+    [], /* array of 11 HTMLDivElement */
+    [], /* array of 11 HTMLDivElement */
+  ],
+  gameStarted: false,
+  moveButtons: {
+    ohno: null, /* ohno is an HTMLInputElement */
+    single: [], /* single[i] is an HTMLInputElement */
+    double: [], /* double[i][j] is an HTMLInputElement */
+  },
+  scoreColumns: [], /* array of 11 HTMLDivElement */
+};
+
+/* the height of each score column */
+var MAX_STEPS = [2, 4, 6, 8, 10, 12, 10, 8, 6, 4, 2];
+
+/* constant array of bitmasks, used to compute survival probabilities */
+var SURVIVAL_MASK = [1, 3, 4, 5, 6, 7, 9, 12, 14, 15, 16, 17, 20, 21, 24, 27, 28,
+  30, 33, 36, 45, 48, 51, 54, 56, 60, 62, 64, 68, 72, 73, 80, 84, 85, 90, 96,
+  99, 102, 108, 112, 120, 126, 144, 153, 165, 180, 186, 192, 204, 216, 224, 238,
+  240, 248, 252, 256, 272, 273, 288, 292, 297, 306, 320, 336, 340, 360, 378,
+  384, 408, 428, 432, 448, 480, 504, 561, 612, 626, 720, 744, 756, 768, 816,
+  864, 896, 952, 960, 992, 1008, 1024, 1056, 1057, 1088, 1092, 1122, 1152, 1168,
+  1188, 1224, 1280, 1320, 1344, 1360, 1440, 1536, 1584, 1632, 1728, 1792, 1920];
+
+/* constant array of multiplicities, used to compute survival probabilities */
+var SURVIVAL_COUNT = [1, 4, 1, 4, 4, 6, 4, 4, 12, 12, 1, 4, 8, 6, 4, 12, 6, 24, 4,
+  4, 12, 4, 12, 12, 12, 24, 24, 1, 4, 4, 6, 8, 18, 12, 12, 4, 12, 12, 24, 6, 24,
+  24, 4, 12, 12, 24, 24, 4, 12, 24, 12, 24, 24, 24, 24, 1, 4, 6, 4, 6, 12, 12,
+  8, 18, 24, 24, 24, 4, 12, 24, 24, 6, 24, 24, 12, 12, 24, 12, 24, 24, 4, 12,
+  12, 12, 24, 24, 24, 24, 1, 4, 6, 4, 6, 12, 4, 6, 12, 12, 4, 12, 6, 12, 12, 4,
+  12, 12, 12, 6, 12];
+
+/* ---------------------------------------------------------------- */
+/* set up the user interface once at page load */
+
+uiSetup();
+function uiSetup() {
+  attachClickHandlers();
+  generateMoveButtons();
+  generateStyle();
+  generateScoreboard();
+}
+
+function attachClickHandlers() {
+  var button;
+  for (button of document.querySelectorAll('#input-players > input')) {
+    button.addEventListener('click', startGame);
+  }
+  for (button of document.querySelectorAll('#input-dice > input')) {
+    button.addEventListener('click', inputDie);
+  }
+  document.getElementById('roll-dice').addEventListener('click', rollDice);
+  document.getElementById('clear-dice').addEventListener('click', clearDice);
+  document.getElementById('roll-again').addEventListener('click', rollAgain);
+  document.getElementById('end-turn').addEventListener('click', endTurn);
+  document.getElementById('reset').addEventListener('click', endGame);
+}
+
+function generateMoveButtons() {
+  var movePool, move, i, j;
+  movePool = document.getElementById('move-pool');
+
+  /* the "oh no!" move, for when the turn's progress will be lost */
+  move = document.createElement('input');
+  move.type = 'button';
+  move.value = 'oh no!';
+  move.addEventListener('click', clickMove);
+  movePool.appendChild(move);
+  ui.moveButtons.ohno = move;
+
+  /* the singleton moves */
+  for (i = 0; i < 11; i++) {
+    move = document.createElement('input');
+    move.type = 'button';
+    move.value = (i+2);
+    move.addEventListener('click', clickMove);
+    movePool.appendChild(document.createTextNode(' '));
+    movePool.appendChild(move);
+    ui.moveButtons.single[i] = move;
+  }
+
+  /* the doubleton moves */
+  for (i = 0; i < 11; i++) {
+    ui.moveButtons.double[i] = [];
+  }
+  for (i = 0; i < 11; i++) {
+    for (j = i; j < 11; j++) {
+      move = document.createElement('input');
+      move.type = 'button';
+      move.value = (i+2) + ' + ' + (j+2);
+      move.addEventListener('click', clickMove);
+      movePool.appendChild(document.createTextNode(' '));
+      movePool.appendChild(move);
+      ui.moveButtons.double[i][j] = move;
+      ui.moveButtons.double[j][i] = move;
+    }
+  }
+}
+
+function generateStyle() {
+  var style, dark, light, steps, rule, i;
+  document.head.appendChild(style = document.createElement('style'));
+  /* striped background for scoreboard progress bars */
+  dark = 'rgba(0, 0, 0, .1)';
+  light = 'rgba(255, 255, 255, .2)';
+  for (steps of new Set(MAX_STEPS)) {
+    rule = '.bars.max-steps-' + steps + ' { background: linear-gradient(to top';
+    rule += ', ' + dark;
+    for (i = 0; i < steps; i++) {
+      rule += ', ' + (i%2 ? light : dark) + ' ' + barHeight(i, steps);
+      rule += ', ' + (i%2 ? dark : light) + ' ' + barHeight(i, steps);
+    }
+    rule += ', ' + dark;
+    rule += '); }';
+    style.sheet.insertRule(rule, 0);
+  }
+  /* position of the progress bars indicating the current
+     player's progress; this rule gets modified dynamically */
+  rule = '.bar.progress { left: .25em; }'
+  style.sheet.insertRule(rule, 0);
+  ui.currentProgressBarStyle = style.sheet.cssRules[0].style;
+}
+
+function generateScoreboard() {
+  var scoreboard, i, div, bars, bar, player;
+  scoreboard = document.getElementById('scoreboard');
+  for (i = 0; i < 11; i++) {
+    scoreboard.appendChild(div = document.createElement('div'));
+    div.appendChild(document.createTextNode(i+2));
+    div.appendChild(bars = document.createElement('div'));
+    bars.className = 'bars max-steps-' + MAX_STEPS[i];
+    bars.appendChild(bar = document.createElement('div'));
+    bar.className = 'bar progress';
+    ui.scoreColumns[i] = bars;
+    ui.currentProgressBars[i] = bar;
+    for (player = 0; player < 5; player++) {
+      bars.appendChild(bar = document.createElement('div'));
+      bar.className = 'bar player' + (player+1);
+      ui.playerProgressBars[player][i] = bar;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* update the view of the whole page */
+
+/* 'uiUpdate()' should be called at the end of
+   every input button click handler, and nowhere else */
+
+function uiUpdate() {
+  updateGameStage();
+  if (ui.gameStarted) {
+    updateActivePlayers();
+    updateCurrentPlayer();
+    updateProgressBars();
+    updateScoredColumns();
+    updateDiceControls();
+    updateMoveControls();
+    updateCurrentMove();
+    updateSurvivalProbability();
+  }
+}
+
+function updateGameStage() {
+  var preGame, inGame;
+  preGame = [
+    document.forms.players,
+  ];
+  inGame = [
+    document.forms.roll,
+    document.getElementById('scoreboard'),
+    document.forms.turn,
+    document.getElementById('token-pool'),
+    document.forms.reset,
+  ];
+  if (ui.gameStarted) {
+    hide(preGame);
+    show(inGame);
+  } else {
+    show(preGame);
+    hide(inGame);
+  }
+}
+
+function updateActivePlayers() {
+  var numPlayers, i, token;
+  numPlayers = gameState.players.length
+  /* active players */
+  for (i = 0; i < numPlayers; i++) {
+    show(document.querySelectorAll('.player' + (i+1)));
+  }
+  /* inactive players */
+  for (i = numPlayers; i < 5; i++) {
+    hide(document.querySelectorAll('.player' + (i+1)));
+  }
+  /* centering of the player tokens */
+  for (token of document.querySelectorAll('.token')) {
+    token.classList.remove('last');
+  }
+  token = document.querySelector('.token.player' + numPlayers);
+  token.classList.add('last');
+}
+
+function updateCurrentPlayer() {
+  var cP, token;
+  cP = gameState.currentPlayer
+  /* line up the turn progress bars with the current player's bars */
+  ui.currentProgressBarStyle.left = (.5*cP + .25) + 'em';
+  /* highlight the current player's token */
+  for (token of document.querySelectorAll('.token')) {
+    token.classList.remove('lit');
+  }
+  token = document.querySelector('.token.player' + (cP+1));
+  token.classList.add('lit');
+}
+
+function updateProgressBars() {
+  var progress, i, player, available;
+  /* adjust the height of each scoreboard progress bar
+     according to gameState */
+  progress = currentProgress();
+  for (i = 0; i < 11; i++) {
+    ui.currentProgressBars[i].style.height =
+      barHeight(progress[i], MAX_STEPS[i]);
+    for (player = 0; player < gameState.players.length; player++) {
+      ui.playerProgressBars[player][i].style.height =
+        barHeight(gameState.players[player][i], MAX_STEPS[i]);
+    }
+  }
+  /* also hide the current progress bar for unavailable score columns */
+  available = columnAvailable();
+  for (i = 0; i < 11; i++) {
+    if (available[i]) {
+      show([ui.currentProgressBars[i]]);
+    } else {
+      hide([ui.currentProgressBars[i]]);
+    }
+  }
+}
+
+function updateScoredColumns() {
+  var i, player;
+  for (i = 0; i < 11; i++) {
+    ui.scoreColumns[i].classList.remove(
+      'scored', 'player1', 'player2', 'player3', 'player4', 'player5');
+  }
+  for (player = 0; player < gameState.players.length; player++) {
+    for (i of scoredColumns(player)) {
+      ui.scoreColumns[i].classList.add(
+        'scored', 'player' + (player+1));
+    }
+  }
+}
+
+function updateDiceControls() {
+  var diceCount;
+  diceCount = document.querySelectorAll('#dice-pool > .die').length;
+  document.getElementById('roll-dice').disabled = (diceCount >= 4);
+  document.getElementById('input-dice').disabled = (diceCount >= 4);
+  document.getElementById('clear-dice').disabled = (diceCount === 0);
+}
+
+function updateMoveControls() {
+  var dice, a, b, c, d, moveFound, tmpMove, available, active, sums;
+  hide(document.querySelectorAll('#move-pool > input'))
+  dice = document.querySelectorAll('#dice-pool > .die');
+  if (dice.length === 4) {
+    a = dice[0].value - 1;
+    b = dice[1].value - 1;
+    c = dice[2].value - 1;
+    d = dice[3].value - 1;
+    /* compute available and active columns as if no move was selected */
+    tmpMove = ui.currentMove;
+    setMove(null);
+    available = columnAvailable();
+    active = activeColumns();
+    setMove(tmpMove);
+    moveFound = false;
+    for (sums of [[a+b, c+d], [a+c, b+d], [a+d, b+c]]) {
+      if (available[sums[0]]) {
+        if (available[sums[1]]) {
+          /* both sums are available */
+          moveFound = true;
+          if ((active.length === 2) &&
+              (sums[0] !== sums[1]) &&
+              (active.indexOf(sums[0]) === -1) &&
+              (active.indexOf(sums[1]) === -1)) {
+            /* each sum can be played independently */
+            show([
+              ui.moveButtons.single[sums[0]],
+              ui.moveButtons.single[sums[1]],
+            ]);
+          } else {
+            /* the two sums can be played together */
+            show([ui.moveButtons.double[sums[0]][sums[1]]]);
+          }
+        } else {
+          /* only sums[0] is available */
+          moveFound = true;
+          show([ui.moveButtons.single[sums[0]]]);
+        }
+      } else {
+        if (available[sums[1]]) {
+          /* only sums[1] is available */
+          moveFound = true;
+          show([ui.moveButtons.single[sums[1]]]);
+        }
+      }
+    }
+    if (!moveFound) {
+      show([ui.moveButtons.ohno]);
+    }
+  }
+}
+
+function updateCurrentMove() {
+  var move;
+  for (move of document.querySelectorAll('#move-pool > input')) {
+    move.classList.remove('lit');
+  }
+  if (ui.currentMove === null) {
+    document.forms.roll.classList.add('lit');
+    document.forms.turn.classList.remove('lit');
+    document.getElementById('roll-again').disabled = true;
+    document.getElementById('end-turn').disabled = true;
+  } else {
+    ui.currentMove.classList.add('lit');
+    document.forms.roll.classList.remove('lit');
+    document.forms.turn.classList.add('lit');
+    document.getElementById('roll-again').disabled = currentlyOhNo();
+    document.getElementById('end-turn').disabled = false;
+  }
+}
+
+function updateSurvivalProbability() {
+  var bitString, bit, survivalCount, i,
+    percent, red, green, color, gradient, meter;
+  bitString = 0;
+  for (bit of columnAvailable()) {
+    bitString <<= 1;
+    bitString |= bit;
+  }
+  survivalCount = 0;
+  for (i = 0; i < SURVIVAL_MASK.length; i++) {
+    if ((bitString & SURVIVAL_MASK[i]) !== 0) {
+      survivalCount += SURVIVAL_COUNT[i];
+    }
+  }
+  percent = survivalCount / 1296 * 100;
+  red = Math.min(100, 2*(100-percent));
+  green = Math.min(100, 2*percent);
+  color = 'rgb(' + red + '%, ' + green + '%, 0%)';
+  gradient = 'linear-gradient(to right'
+  gradient += ', ' + color;
+  gradient += ', ' + color + ' ' + percent + '%';
+  gradient += ', white ' + percent + '%';
+  gradient += ', white)';
+  meter = document.getElementById('survival');
+  meter.style.background = gradient;
+  meter.innerHTML = percent.toPrecision(3) + '%';
+}
+
+/* ---------------------------------------------------------------- */
+/* button click handlers */
+
+/* in these functions, 'this' refers to
+   the HTMLInputElement which was clicked */
+
+/* these handlers have the responsibility of making
+   appropriate changes to the 'gameState' object and
+   the 'dice-pool' element's innerHTML and
+   'ui.currentMove', but nothing else */
+
+/* every function should end with a call to 'uiUpdate()' */
+
+function clearDice() {
+  document.getElementById('dice-pool').innerHTML = '';
+  setMove(null);
+  uiUpdate();
+}
+
+function clickMove() {
+  setMove(ui.currentMove === this ? null : this);
+  uiUpdate();
+}
+
+function endGame() {
+  ui.gameStarted = false;
+  uiUpdate();
+}
+
+function endTurn() {
+  gameState.players[gameState.currentPlayer] = currentProgress();
+  gameState.currentPlayer++;
+  gameState.currentPlayer %= gameState.players.length;
+  gameState.moveStack = [];
+  document.getElementById('dice-pool').innerHTML = '';
+  ui.currentMove = null;
+  uiUpdate();
+}
+
+function inputDie() {
+  addDie(this.value);
+  uiUpdate();
+}
+
+function removeDie() {
+  this.remove();
+  setMove(null);
+  uiUpdate();
+}
+
+function rollAgain() {
+  document.getElementById('dice-pool').innerHTML = '';
+  ui.currentMove = null;
+  uiUpdate();
+}
+
+function rollDice() {
+  var count;
+  count = document.getElementById('dice-pool').children.length;
+  for (; count < 4; count++) { addDie(Math.floor(Math.random() * 6) + 1); }
+  uiUpdate();
+}
+
+function startGame() {
+  var player;
+  gameState.currentPlayer = 0;
+  gameState.moveStack = [];
+  gameState.players = [];
+  for (player = 0; player < this.value; player++) {
+    gameState.players[player] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  }
+  document.getElementById('dice-pool').innerHTML = '';
+  ui.currentMove = null;
+  ui.gameStarted = true;
+  uiUpdate();
+}
+
+/* ---------------------------------------------------------------- */
+/* helper functions */
+
+/* convert a progress bar height from the format:
+   "num" steps out of a maximum possible of "den"
+   to the format: css percentage value */
+function barHeight(num, den) {
+  return (10 + 90*num/den) + '%';
+}
+
+/* compute the current player's progress on all score columns,
+   based on gameState.players[gameState.currentPlayer]
+   and gameState.moveStack */
+function currentProgress() {
+  var result, values, i;
+  result = gameState.players[gameState.currentPlayer].slice();
+  if (!currentlyOhNo()) {
+    for (values of gameState.moveStack) {
+      for (i of values) {
+        result[i] = Math.min(MAX_STEPS[i], result[i]+1);
+      }
+    }
+  }
+  return result;
+}
+
+/* check if the current player has busted their turn */
+function currentlyOhNo() {
+  var values;
+  for (values of gameState.moveStack) {
+    if (values.length == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* compute an array of 11 booleans, where the i'th entry
+   is true if the i'th score column is available for
+   the current player to make progress, based on gameState */
+function columnAvailable() {
+  var result, active, i, player;
+  result = [];
+  if (currentlyOhNo()) {
+    /* no columns are available */
+    for (i = 0; i < 11; i++) {
+      result[i] = false;
+    }
+    return result;
+  }
+  active = activeColumns();
+  if (active.length < 3) {
+    /* every unscored column is available */
+    for (i = 0; i < 11; i++) {
+      result[i] = true;
+    }
+    for (player = 0; player < gameState.players.length; player++) {
+      for (i of scoredColumns(player)) {
+        result[i] = false;
+      }
+    }
+    return result;
+  } else {
+    /* only the active columns are available */
+    for (i = 0; i < 11; i++) {
+      result[i] = false;
+    }
+    for (i of active) {
+      result[i] = true;
+    }
+    return result;
+  }
+}
+
+/* return an array of the current active column indices,
+   that is, the indices of the score columns where the
+   current player has made progress this turn */
+function activeColumns() {
+  var result, baseline, progress, i;
+  result = [];
+  baseline = gameState.players[gameState.currentPlayer];
+  progress = currentProgress();
+  for (i = 0; i < 11; i++ ) {
+    (progress[i] > baseline[i]) && result.push(i);
+  }
+  return result;
+}
+
+/* return an array of the column indices which 'player'
+   has scored (reached the top of the column) */
+function scoredColumns(player) {
+  var result, progress, i;
+  result = [];
+  progress = gameState.players[player]
+  for (i = 0; i < 11; i++) {
+    (progress[i] === MAX_STEPS[i]) && result.push(i);
+  }
+  return result;
+}
+
+function show(elements) {
+  var e;
+  for (e of elements) {
+    e.classList.remove('hidden');
+  }
+}
+
+function hide(elements) {
+  var e;
+  for (e of elements) {
+    e.classList.add('hidden');
+  }
+}
+
+function setMove(move) {
+  ui.currentMove !== null && gameState.moveStack.pop();
+  ui.currentMove = move
+  ui.currentMove !== null && gameState.moveStack.push(moveValues(move));
+}
+
+function moveValues(move) {
+  var result, sum;
+  result = [];
+  if (move !== ui.moveButtons.ohno) {
+    for (sum of move.value.split(' + ')) {
+      result.push(sum-2);
+    }
+  }
+  return result;
+}
+
+function addDie(value) {
+  var dicePool, die;
+  dicePool = document.getElementById('dice-pool');
+  dicePool.appendChild(document.createTextNode(' '));
+  dicePool.appendChild(die = document.createElement('input'));
+  die.type = 'button';
+  die.className = 'die';
+  die.value = value;
+  die.addEventListener('click', removeDie);
+}
+
+/* ---------------------------------------------------------------- */
+</script>
+
